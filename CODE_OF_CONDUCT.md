@@ -112,5 +112,10 @@ De todas formas si fue generado por IA el integrante deberá entender lo que hac
 
 ## 5. Firma de cada integrante del grupo
 - Francisco Cornejo Quiroga
+<img width="320" height="600" alt="imagen" src="https://github.com/user-attachments/assets/617d97cb-0428-4211-8362-746b3f9fb21d" />
+
 - Ignacio Gutiérrez Fuenzalida
+<img width="300" height="600" alt="imagen" src="https://github.com/user-attachments/assets/7b4c7ed6-1548-400f-9844-ec70ac6b0f61" />
+
 - Gonzalo Rivas Valenzuela
+<img width="300" height="600" alt="imagen" src="https://github.com/user-attachments/assets/bce8caa3-7b64-498a-ba57-5e68d5be8ceb" />
