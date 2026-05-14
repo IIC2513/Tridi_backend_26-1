@@ -38,15 +38,17 @@ module.exports = (sequelize, DataTypes) => {
         }
     },
     password: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
+        type: DataTypes.STRING
     },
     role: {
+        defaultValue: 'user',
         type:DataTypes.STRING,
     },
     image: {
         type: DataTypes.STRING,
         allowNull: true,
+        defaultValue: null,
         validate: {
             isUrl: true
         }},
@@ -57,7 +59,8 @@ module.exports = (sequelize, DataTypes) => {
         }
     },
     seller: {
-        type: DataTypes.BOOLEAN
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
   }, {
     sequelize,

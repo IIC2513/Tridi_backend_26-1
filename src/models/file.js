@@ -29,16 +29,19 @@ module.exports = (sequelize, DataTypes) => {
         }
     },
     size: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.FLOAT,
+        allowNull: false,
         validate: {
             min: 0
         }
     },
     type: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: false
     },
     extension: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: false
     }
   }, {
     sequelize,
