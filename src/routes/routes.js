@@ -1,7 +1,8 @@
 const express = require('express');
 
 const usersRouter = require('./users');
-const modelsRouter = require('./modelstridi');
+
+const modelsRouter = require('./models');
 const loginRouter = require('./login');
 const signupRouter = require('./signup');
 

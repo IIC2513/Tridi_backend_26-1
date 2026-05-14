@@ -1,4 +1,5 @@
 'use strict';
+const {encrypt} = require('../helpers/handleBcrypt');
 const {
   Model
 } = require('sequelize');
@@ -38,30 +39,44 @@ module.exports = (sequelize, DataTypes) => {
         }
     },
     password: {
-        type: DataTypes.STRING,
         allowNull: true,
+        type: DataTypes.STRING,
     },
     role: {
+        defaultValue: 'user',
         type:DataTypes.STRING,
     },
     image: {
         type: DataTypes.STRING,
         allowNull: true,
+        defaultValue: null,
         validate: {
             isUrl: true
         }},
-    tridicoins: {
-        type: DataTypes.INTEGER,
-        validate: {
-            min: 0
-        }
+    externalId: {
+        type: DataTypes.STRING,
+        unique: true,
+        allowNull: true
     },
     seller: {
-        type: DataTypes.BOOLEAN
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
   }, {
     sequelize,
     modelName: 'User',
+    hooks: {
+        beforeCreate: async (user) => {
+            if (user.password) {
+                user.password = await encrypt(user.password);
+            }
+        },
+        beforeUpdate: async (user) => {
+            if (user.changed('password') && user.password) {
+                user.password = await encrypt(user.password);
+            }
+        }
+    }
   });
   return User;
 };
