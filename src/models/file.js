@@ -31,10 +31,6 @@ module.exports = (sequelize, DataTypes) => {
             min: 0
         }
     },
-    type: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
     extension: {
         type: DataTypes.STRING,
         allowNull: false
