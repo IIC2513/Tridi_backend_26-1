@@ -2,6 +2,8 @@ const express = require('express');
 const { Op, literal } = require("sequelize");
 const router = express.Router();
 
+const { User } = require('../models');
+const { File } = require('../models');
 const { ModelTridi } = require('../models');
 
 router.get('/', async (req, res) => {
@@ -12,7 +14,19 @@ router.get('/', async (req, res) => {
                 creatorId: {
                     [Op.not]: null
                 }
-        }});
+            },
+            include: [
+                {
+                    model: File,
+                    as: 'files',
+                },
+                {
+                    model: User,
+                    as: 'creator',
+                    attributes: ['id', 'username', 'image'],
+                },
+            ]
+        });
 
         res.status(200).json({ data: models });
 
