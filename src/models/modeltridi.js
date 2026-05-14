@@ -23,6 +23,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
     },
     description: {
+        allowNull: true,
+        defaultValue: null,
         type: DataTypes.TEXT
     },
     creatorId: {
@@ -30,7 +32,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true
     },
     price: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
+        allowNull: false,
         validate: {
             min: 0
         }
