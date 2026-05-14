@@ -52,11 +52,10 @@ module.exports = (sequelize, DataTypes) => {
         validate: {
             isUrl: true
         }},
-    tridicoins: {
-        type: DataTypes.INTEGER,
-        validate: {
-            min: 0
-        }
+    externalId: {
+        type: DataTypes.UUID,
+        unique: true,
+        allowNull: true
     },
     seller: {
         type: DataTypes.BOOLEAN,
