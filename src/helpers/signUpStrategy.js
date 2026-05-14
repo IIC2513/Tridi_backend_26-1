@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -76,8 +75,4 @@ async function signUpWithSupaBase(providerToken) {
     return [user, created, null];
 }
 
-function createSessionToken(userId) {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
-}
-
-module.exports = { signUp, createSessionToken };
+module.exports = { signUp };

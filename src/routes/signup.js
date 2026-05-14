@@ -1,7 +1,6 @@
-const { Session } = require('../models');
-const { signUp, createSessionToken } = require('../helpers/signUpFactory');
+const { signUp } = require('../helpers/signUpStrategy');
+const { createSession } = require('../helpers/createSessionHelper');
 
-const dayjs = require('dayjs');
 const express = require('express');
 
 const app = express();
@@ -12,18 +11,14 @@ app.post('/', async (req, res) => {
         const [user, created, error] = await signUp(req.body);
 
         if (error)
-            return res.status(error.status).json({error: error});
+            return res.status(error.status).json({ error });
 
         if (!created)
             return res.status(200).json({ user });
 
         delete user.dataValues.password;
 
-        const session = await Session.create({
-            userId: user.id,
-            token: createSessionToken(user.id),
-            exp_date: dayjs().add(1, 'hour').toDate()
-        });
+        const session = await createSession(user);
 
         return res.status(201).json({ user, session });
     } catch (error) {
