@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
             isUrl: true
         }},
     externalId: {
-        type: DataTypes.UUID,
+        type: DataTypes.STRING,
         unique: true,
         allowNull: true
     },
