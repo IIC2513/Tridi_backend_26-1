@@ -1,4 +1,5 @@
 'use strict';
+const {encrypt} = require('../helpers/handleBcrypt');
 const {
   Model
 } = require('sequelize');
@@ -64,6 +65,18 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'User',
+    hooks: {
+        beforeCreate: async (user) => {
+            if (user.password) {
+                user.password = await encrypt(user.password);
+            }
+        },
+        beforeUpdate: async (user) => {
+            if (user.changed('password') && user.password) {
+                user.password = await encrypt(user.password);
+            }
+        }
+    }
   });
   return User;
 };
