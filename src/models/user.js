@@ -75,6 +75,17 @@ module.exports = (sequelize, DataTypes) => {
             if (user.changed('password') && user.password) {
                 user.password = await encrypt(user.password);
             }
+        },
+        afterCreate: async (user, options) => {
+            const { Stats } = sequelize.models;
+
+            await Stats.create(
+            {
+                userId: user.id
+            },
+            {
+                transaction: options.transaction
+            });
         }
     }
   });
