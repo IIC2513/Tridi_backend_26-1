@@ -1,5 +1,6 @@
 const { User } = require('../models');
 const { createClient } = require('@supabase/supabase-js');
+const {encrypt, compare} = require('./handleBcrypt');
 const WebSocket = require('ws');
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -31,7 +32,7 @@ async function normalLogin(body) {
             status: 401
         }];
 
-    const valid = await user.comparePassword(password);
+    const valid = await compare(password, user.password);
     if (!valid)
         return [null, {
             message: 'Invalid email or password',
