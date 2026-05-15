@@ -13,10 +13,10 @@ app.post('/', async (req, res) => {
         if (error)
             return res.status(error.status).json({ error });
 
+        delete user.dataValues.password;
+
         if (!created)
             return res.status(200).json({ user });
-
-        delete user.dataValues.password;
 
         const session = await createSession(user);
 
