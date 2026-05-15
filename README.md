@@ -57,6 +57,8 @@ DB_HOST= // Al ser trabajo local, puede ser localhost o 127.0.0.1
 DB_NAME= // Nombre de la BDD creado anteriormente
 DB_USER= // Nombre del usuario privilegiado creado anteriormente
 DB_PASSWORD= // Contraseña que se le asignó al usuario privilegiado
+
+JWT_SECRET= // Código secreto que queramos.
 ```
 El resto de valores los podemos dejar tal como vienen en `.env.example`. Lo importante es finalmente tener el archivo `.env` con todas esas declaraciones de la estructura base, más las modificaciones que se requieran para los datos correctos.
 
@@ -71,3 +73,6 @@ npx sequelize-cli db:seed:all
 ```
 
 Y con eso estaría todo listo para levantar la API tal como se mencionaba en la sección **Ejecución**.
+
+## Consideraciones
+- La ejecución se desarrolló en un ambiente de Linux, a través de *Ubuntu WSL*.
