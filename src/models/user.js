@@ -1,8 +1,5 @@
 'use strict';
 const {encrypt} = require('../helpers/handleBcrypt');
-const { Model } = require('sequelize');
-
-
 const {
   Model
 } = require('sequelize');
