@@ -76,3 +76,4 @@ Y con eso estaría todo listo para levantar la API tal como se mencionaba en la 
 
 ## Consideraciones
 - La ejecución se desarrolló en un ambiente de Linux, a través de *Ubuntu WSL*.
+- Deploy de la API: *https://webback.gentlehill-9254b544.eastus.azurecontainerapps.io/*
