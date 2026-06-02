@@ -13,10 +13,10 @@ const middlawareHandleLoggin = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
-       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { userId } = jwt.verify(token, process.env.JWT_SECRET);
 
         const activeSession = await Session.findOne({
-            where: { token: token },
+            where: { token, userId },
             include: [
                 {
                     model: User,
