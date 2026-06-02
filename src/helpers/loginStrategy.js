@@ -1,7 +1,6 @@
 const { User } = require('../models');
 const { createClient } = require('@supabase/supabase-js');
-const {encrypt, compare} = require('./handleBcrypt');
-const WebSocket = require('ws');
+const { compare } = require('./handleBcrypt');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
