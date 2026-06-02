@@ -13,6 +13,6 @@ router.use('/users', middlawareHandleLoggin, usersRouter);
 router.use('/models', modelsRouter);
 router.use('/login', loginRouter);
 router.use('/signup', signupRouter);
-router.use('/cart', cartRouter);
+router.use('/cart', middlawareHandleLoggin, cartRouter);
 
 module.exports = router;
