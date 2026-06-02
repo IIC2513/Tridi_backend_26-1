@@ -44,15 +44,9 @@ const middlawareHandleLoggin = async (req, res, next) => {
         return next();
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
-            try {
-                Session.destroy({ where: { token: token } })
-                    .catch(dbError => {
-                        console.error("Background cleanup failed for expired session:", dbError);
-                    });
-
-            } catch (dbError) {
-                console.error("Error al borrar sesión expirada:", dbError);
-            }
+            void Session.destroy({ where: { token } }).catch((dbError) => {
+                console.error('Background cleanup failed for expired session:', dbError);
+            });
             return res.status(401).json({ error: "Unauthorized: Token has expired" });
         }
 
