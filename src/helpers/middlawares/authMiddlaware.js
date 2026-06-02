@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 const { Session, User } = require('../../models');
 
-// wrapper that velidates a logged user, adds req.user with id, username and role.
+// Wrapper that validates a logged-in user and sets req.user with id, username, and role.
 const middlawareHandleLoggin = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
