@@ -16,7 +16,7 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       unitPrice: {
-        type: Sequelize.DECIMAL
+        type: Sequelize.DECIMAL(10, 2), allowNull: false
       },
       createdAt: {
         allowNull: false,
@@ -25,7 +25,7 @@ module.exports = {
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE
-      }
+      },
     });
   },
   async down(queryInterface, Sequelize) {
