@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { Cart, CartItem, ModelTridi, File, User } = require('../models');
+const authMiddleware = require('../helpers/middlawares/authMiddlaware');
 
 
-// aquí hay que cambiar por middleware (pedir auth en ruta)
-router.use((req, res, next) => {
-    if (!req.user || !req.user.id) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
-    next();
-});
+router.use(authMiddleware);
 
 const itemInclude = [
     {
