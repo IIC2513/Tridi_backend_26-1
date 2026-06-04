@@ -1,19 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { Purchase, PurchaseItem, CartItem } = require('../models');
+const { Purchase, PurchaseItem, Cart, CartItem, ModelTridi, Card } = require('../models');
 const { canTransition } = require('../services/purchaseStateMachine');
 const mock = require('../services/paymentMock');
 
+
 router.post('/', async (req, res) => {
     const buyerId = req.user.id;
-    const items = await CartItem.findAll({ where: { userId: buyerId } });
+    const cart = await Cart.findOne({ where: { userId: buyerId } });
+    const items = cart ? await CartItem.findAll({ where: { cartId: cart.id }, include: [{ model: ModelTridi }] }) : [];
     if (items.length === 0) {
         return res.status(422).json({ error: 'cart is empty.' }); // 422 unprocessable content (sintáxis bien pero lógica mal)
     }
-    const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0); // mm funsional mm λλλ
+    const total = items.reduce((s, i) => s + Number(i.ModelTridi.price), 0);
     const purchase = await Purchase.create({ buyerId, total, status: 'pending' });
     await PurchaseItem.bulkCreate(items.map(i => ({
-        purchaseId: purchase.id, modelId: i.modelId, quantity: i.quantity, price: i.price,
+        purchaseId: purchase.id,
+        modelId: i.modelId,
+        unitPrice: i.ModelTridi.price,
     })));
     res.status(201).json(purchase)
 });
@@ -61,10 +65,19 @@ router.post('/:id/pay', async (req, res) => {
     if (!['pending', 'failed'].includes(purchase.status)) {
         return res.status(409).json({ error: `Cannot pay a ${purchase.status} purchase` });
     }
-    const result = mock.charge({ amount: purchase.total, token: req.body.token });
+    
+    const card = await Card.findOne({ where: { id: req.body.cardId, userId: req.user.id } });
+    if (!card) {
+        return res.status(404).json({ error: 'Card not found.' });
+    }
+    const result = mock.charge({ amount: purchase.total, card });
+
     if (result.success) {
         await purchase.update({ status: 'paid' });
-        await CartItem.destroy({ where: { userId: purchase.buyerId } }); // destruir fokin carrito
+        const cart = await Cart.findOne({ where: { userId: purchase.buyerId } });
+        if (cart) {
+            await CartItem.destroy({ where: { cartId: cart.id } });
+        }
         return res.json({ purchase, transactionId: result.transactionId });
     }
     if (purchase.status === 'pending') {
