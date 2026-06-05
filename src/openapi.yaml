@@ -1,0 +1,636 @@
+openapi: 3.0.3
+info:
+  title: Tridi API
+  version: 1.0.0
+  description: API for Tridi application.
+servers:
+  - url: https://api.tridi.jessica.cl
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        image:
+          type: string
+          nullable: true
+        seller:
+          type: boolean
+        role:
+          type: string
+        stats:
+          type: object
+          properties:
+            c_sales:
+              type: integer
+            c_purchases:
+              type: integer
+            reputation:
+              type: integer
+    ModelTridi:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        creatorId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              modelId:
+                type: integer
+              url:
+                type: string
+              type:
+                type: string
+        creator:
+          $ref: '#/components/schemas/User'
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        cartId:
+          type: integer
+        modelId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        ModelTridi:
+          $ref: '#/components/schemas/ModelTridi'
+    Card:
+      type: object
+      properties:
+        id:
+          type: integer
+        brand:
+          type: string
+        last4:
+          type: string
+        expMonth:
+          type: integer
+        expYear:
+          type: integer
+        userId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    Purchase:
+      type: object
+      properties:
+        id:
+          type: integer
+        buyerId:
+          type: integer
+        date:
+          type: string
+          format: date-time
+        total:
+          type: number
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        PurchaseItems:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              purchaseId:
+                type: integer
+              modelId:
+                type: integer
+              unitPrice:
+                type: number
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Unauthorized: Session not found or logged out"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Forbidden: Invalid or expired token"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Internal server error"
+
+paths:
+  /users/:
+    get:
+      summary: Get all users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /login:
+    post:
+      summary: User login
+      description: Login using standard credentials or a Supabase provider token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    email:
+                      type: string
+                    password:
+                      type: string
+                  required:
+                    - email
+                    - password
+                - type: object
+                  properties:
+                    providerToken:
+                      type: string
+                  required:
+                    - providerToken
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: integer
+        '401':
+          description: Unauthorized (Invalid credentials)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: integer
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /signup:
+    post:
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                username:
+                  type: string
+                image:
+                  type: string
+              required:
+                - email
+                - password
+                - username
+      responses:
+        '200':
+          description: Strategy successful but new user not created (e.g. existing third-party user).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  session:
+                    type: object
+        '409':
+          description: Strategy Error (e.g. Email already in use)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/:
+    get:
+      summary: Get all 3D models
+      responses:
+        '200':
+          description: A list of models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModelTridi'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/{id}:
+    get:
+      summary: Get a specific 3D model
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The model details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelTridi'
+        '404':
+          description: Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cart:
+    get:
+      summary: Get user's cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      subtotal:
+                        type: number
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CartItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cart/items:
+    post:
+      summary: Add item to cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelId:
+                  type: integer
+              required:
+                - modelId
+      responses:
+        '201':
+          description: Added to cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CartItem'
+        '200':
+          description: Already in cart
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cart/items/{id}:
+    delete:
+      summary: Remove item from cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Item removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+        '404':
+          description: Not Found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /cards:
+    get:
+      summary: Get saved payment methods
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of cards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Card'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Save a new card
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                number:
+                  type: string
+                expMonth:
+                  type: integer
+                expYear:
+                  type: integer
+              required:
+                - number
+                - expMonth
+                - expYear
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Card'
+        '400':
+          description: Bad Request
+        '422':
+          description: Unprocessable Entity
+
+  /purchases:
+    post:
+      summary: Create a new purchase
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Purchase created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '422':
+          description: Cart is empty
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      summary: Get all purchases
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of purchases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Purchase'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /purchases/{id}:
+    get:
+      summary: Get purchase details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Purchase details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+
+  /purchases/{id}/status:
+    patch:
+      summary: Update purchase status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+              required:
+                - status
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+        '409':
+          description: Conflict (Invalid transition)
+
+  /purchases/{id}/pay:
+    post:
+      summary: Process purchase payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardId:
+                  type: integer
+              required:
+                - cardId
+      responses:
+        '200':
+          description: Payment successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  purchase:
+                    $ref: '#/components/schemas/Purchase'
+                  transactionId:
+                    type: string
+        '402':
+          description: Payment Required (Failed)
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase or Card not found
+        '409':
+          description: Conflict
