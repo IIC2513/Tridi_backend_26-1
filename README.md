@@ -75,8 +75,10 @@ npx sequelize-cli db:seed:all
 Y con eso estaría todo listo para levantar la API tal como se mencionaba en la sección **Ejecución**.
 
 ### Documentación API
-La documentación de la API se encuentra en la ruta `/api-docs`
+La documentación de la API se encuentra en la raíz de la API, es decir basta acceder y se desplegará swagger.
 
 ## Consideraciones
 - La ejecución se desarrolló en un ambiente de Linux, a través de *Ubuntu WSL*.
-- Deploy de la API: *https://webback.gentlehill-9254b544.eastus.azurecontainerapps.io/*
+- Deploy de la API:
+  - *https://api.tridi.jessica.cl*
+  - *https://webback.gentlehill-9254b544.eastus.azurecontainerapps.io/*
