@@ -1,4 +1,8 @@
 const express = require('express');
+const path = require('path');
+
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
 
 const usersRouter = require('./users');
 const cartRouter = require('./cart');
@@ -18,5 +22,10 @@ router.use('/signup', signupRouter);
 router.use('/cart', middlawareHandleLoggin, cartRouter);
 router.use('/purchases', middlawareHandleLoggin, purchasesRouter);
 router.use('/cards', cardRouter);
+
+const swaggerPath = path.join(__dirname, '../openapi.yaml');
+const swaggerDocument = YAML.load(swaggerPath);
+router.use('/', swaggerUi.serve);
+router.get('/', swaggerUi.setup(swaggerDocument));
 
 module.exports = router;
