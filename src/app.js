@@ -7,6 +7,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const app = express();
 
 
+
 const swaggerOptions = swaggerJsdoc({
   definition: {
     openapi: '3.0.0',
@@ -18,6 +19,7 @@ const swaggerOptions = swaggerJsdoc({
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 app.use(router);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
@@ -26,3 +28,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
 });
+
+module.exports = app;

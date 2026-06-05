@@ -21,6 +21,11 @@ module.exports = {
       refunded: {
         type: Sequelize.BOOLEAN
       },
+      status: {
+        type: Sequelize.ENUM('pending', 'paid', 'completed', 'failed', 'cancelled', 'refunded'),
+        allowNull: false,
+        defaultValue: 'pending',
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
