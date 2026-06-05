@@ -4,7 +4,7 @@
   "description": "Proyecto backend 26-1",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/app.js",
+    "dev": "nodemon src/server.js",
     "test": "jest"
   },
   "repository": {
