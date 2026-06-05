@@ -11,13 +11,9 @@ module.exports = {
     loggin: false
   },
   test: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME + '_test',
-    host: process.env.DB_HOST,
-    dialect: process.env.DB_DIALECT,
-    port: process.env.DB_PORT,
-    logging: false,
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
   },
   production: {}
 };
