@@ -74,6 +74,12 @@ npx sequelize-cli db:seed:all
 
 Y con eso estaría todo listo para levantar la API tal como se mencionaba en la sección **Ejecución**.
 
+### Tests
+Los tests de la siguiente forma:
+```js
+npm test
+```
+
 ### Documentación API
 La documentación de la API se encuentra en la raíz de la API, es decir basta acceder y se desplegará swagger.
 
