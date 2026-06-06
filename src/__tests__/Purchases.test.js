@@ -13,7 +13,6 @@ const {
 
 const BASE = '/purchases';
 
-
 let server, baseUrl;
 async function api(method, path, body) {
   const res = await fetch(baseUrl + path, {
@@ -25,7 +24,6 @@ async function api(method, path, body) {
   try { data = await res.json(); } catch {}
   return { status: res.status, body: data };
 }
-
 
 beforeAll(async () => {
   try {
@@ -63,7 +61,6 @@ async function seedBuyer() {
   return { buyer, model, cart, card };
 }
 
-
 describe('POST /purchases', () => {
   test('422 cuando el carro esta vacío', async () => {
     const buyer = await User.create({ username: 'eb', email: 'eb@t.com', password: 'x' });
@@ -74,22 +71,24 @@ describe('POST /purchases', () => {
     expect(res.status).toBe(422);
   });
 
-  test('201 crea una compra pendiente con items', async () => {
-    const { buyer } = await seedBuyer();
+  test('201 crea una compra pendiente con items y vacía el carrito', async () => {
+    const { buyer, cart } = await seedBuyer();
     mockUser = { id: buyer.id };
 
     const res = await api('POST', BASE);
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('pending');
-    expect(Number(res.body.total)).toBe(1500); 
+    expect(Number(res.body.total)).toBe(1500);
 
     const items = await PurchaseItem.findAll({ where: { purchaseId: res.body.id } });
     expect(items).toHaveLength(1);
     expect(Number(items[0].unitPrice)).toBe(1500);
+
+    const remaining = await CartItem.findAll({ where: { cartId: cart.id } });
+    expect(remaining).toHaveLength(0);
   });
 });
-
 
 describe('GET /purchases', () => {
   test('retorna las compras del usuario actual y sólo del usuario actual', async () => {
@@ -105,7 +104,6 @@ describe('GET /purchases', () => {
     expect(res.body[0].buyerId).toBe(a.id);
   });
 });
-
 
 describe('GET /purchases/:id', () => {
   test('404 cuando no se encuentra', async () => {
@@ -135,7 +133,6 @@ describe('GET /purchases/:id', () => {
   });
 });
 
-
 describe('PATCH /purchases/:id/status', () => {
   test('409 o transición inválida', async () => {
     const owner = await User.create({ username: 'eb', email: 'o@t.com', password: 'x' });
@@ -155,10 +152,9 @@ describe('PATCH /purchases/:id/status', () => {
   });
 });
 
-
 describe('POST /purchases/:id/pay', () => {
-  test('200 hace el cobro, transiciona a pagado y limpia el carrito', async () => {
-    const { buyer, card, cart } = await seedBuyer();
+  test('200 hace el cobro y transiciona a pagado', async () => {
+    const { buyer, card } = await seedBuyer();
     const p = await Purchase.create({ buyerId: buyer.id, total: 1500, status: 'pending' });
     mockUser = { id: buyer.id };
     mock.charge.mockReturnValue({ success: true, transactionId: 'tx_123' });
@@ -169,9 +165,6 @@ describe('POST /purchases/:id/pay', () => {
     expect(res.body.transactionId).toBe('tx_123');
     expect(res.body.purchase.status).toBe('paid');
     expect(mock.charge).toHaveBeenCalled();
-
-    const remaining = await CartItem.findAll({ where: { cartId: cart.id } });
-    expect(remaining).toHaveLength(0); // cart emptied on success
   });
 
   test('402 marca compra como pendiente si la tarjeta lo rechaza', async () => {
