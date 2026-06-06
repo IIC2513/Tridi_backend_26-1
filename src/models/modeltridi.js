@@ -42,11 +42,13 @@ module.exports = (sequelize, DataTypes) => {
     date: {
         type: DataTypes.DATE,
     },
-    tags: {
-        type: DataTypes.ARRAY(DataTypes.STRING),
-        allowNull: false,
-        defaultValue: [],
-    },
+      tags: {
+          type: process.env.NODE_ENV === 'test'
+              ? DataTypes.JSON
+              : DataTypes.ARRAY(DataTypes.STRING),
+          allowNull: false,
+          defaultValue: [],
+      },
   }, {
     sequelize,
     modelName: 'ModelTridi',

@@ -10,6 +10,10 @@ module.exports = {
     port: process.env.DB_PORT,
     loggin: false
   },
-  test: {},
+  test: {
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
+  },
   production: {}
 };
