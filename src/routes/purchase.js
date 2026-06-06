@@ -121,6 +121,7 @@ router.post('/', async (req, res) => {
         modelId: i.modelId,
         unitPrice: i.ModelTridi.price,
     })));
+    await CartItem.destroy({ where: { cartId: cart.id } });
     res.status(201).json(purchase)
 });
 
@@ -405,11 +406,6 @@ router.post('/:id/pay', async (req, res) => {
 
     if (result.success) {
         await purchase.update({ status: 'paid' });
-        const cart = await Cart.findOne({ where: { userId: purchase.buyerId } });
-        if (cart) {
-            await CartItem.destroy({ where: { cartId: cart.id } });
-        }
-        return res.json({ purchase, transactionId: result.transactionId });
     }
     if (purchase.status === 'pending') {
         await purchase.update({ status: 'failed' });
