@@ -85,6 +85,6 @@ La documentación de la API se encuentra en la raíz de la API, es decir basta a
 
 ## Consideraciones
 - La ejecución se desarrolló en un ambiente de Linux, a través de *Ubuntu WSL*.
-- Deploy de la API:
+- Deploy de la **documentación** de la API:
   - *https://api.tridi.jessica.cl*
   - *https://webback.gentlehill-9254b544.eastus.azurecontainerapps.io/*
