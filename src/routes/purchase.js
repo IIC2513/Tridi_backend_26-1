@@ -406,6 +406,7 @@ router.post('/:id/pay', async (req, res) => {
 
     if (result.success) {
         await purchase.update({ status: 'paid' });
+        return res.json({ purchase, transactionId: result.transactionId });
     }
     if (purchase.status === 'pending') {
         await purchase.update({ status: 'failed' });
