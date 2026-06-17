@@ -13,6 +13,7 @@ const purchasesRouter = require('./purchase');
 const cardRouter = require('./card');
 
 const middlawareHandleLoggin = require("../helpers/middlawares/authMiddlaware")
+const middlawareHandleAdmin = require("../helpers/middlawares/adminMiddlaware")
 const router = express.Router();
 
 router.use('/users', middlawareHandleLoggin, usersRouter);
