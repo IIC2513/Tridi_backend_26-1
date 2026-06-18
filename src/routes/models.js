@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', requireAuth, requireSeller, async (req, res) => {
     try {
         const { name, description, price, tags } = req.body;
-        if (!name?.trim()) return res.status(400).json({ error: 'Falta el nombre' });
+        if (!name?.trim()) return res.status(400).json({ error: 'Name missing' });
 
         const model = await ModelTridi.create({
             name: name.trim(),
