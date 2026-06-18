@@ -11,6 +11,7 @@ const loginRouter = require('./login');
 const signupRouter = require('./signup');
 const purchasesRouter = require('./purchase');
 const cardRouter = require('./card');
+const requestRouter = require('./requests');
 
 const middlawareHandleLoggin = require("../helpers/middlawares/authMiddlaware")
 const middlawareHandleAdmin = require("../helpers/middlawares/adminMiddlaware")
@@ -20,6 +21,7 @@ router.use('/users', middlawareHandleLoggin, usersRouter);
 router.use('/models', modelsRouter);
 router.use('/login', loginRouter);
 router.use('/signup', signupRouter);
+router.use('/requests', middlawareHandleLoggin, requestRouter);
 router.use('/cart', middlawareHandleLoggin, cartRouter);
 router.use('/purchases', middlawareHandleLoggin, purchasesRouter);
 router.use('/cards', cardRouter);
