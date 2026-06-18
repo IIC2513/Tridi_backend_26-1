@@ -21,7 +21,7 @@ const middlawareHandleLoggin = async (req, res, next) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username', 'role']
+                    attributes: ['id', 'username', 'role', 'seller']
                 }
             ]
         });
