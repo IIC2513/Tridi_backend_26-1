@@ -2,6 +2,7 @@ const express = require('express');
 const { Op, literal } = require("sequelize");
 const path = require('node:path');
 const router = express.Router();
+
 const { User } = require('../models');
 const { sequelize } = require('../models');
 const { File } = require('../models');
@@ -131,6 +132,25 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
         if (stored?.key) await removeModelFile(stored.key).catch(() => {});
         console.error('Model file upload failed:', err);
         return res.status(500).json({ error: 'No se pudo subir el archivo' });
+    }
+});
+
+router.delete('/:id', requireAuth, async (req, res) => {
+    try {
+        const model = await ModelTridi.findByPk(req.params.id);
+        if (!model) return res.status(404).json({ error: '3D Model not found.' });
+
+        if ((model.creatorId !== req.user.id) && (req.user.role !== 'admin')){
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        await model.destroy();
+
+        res.status(200).json({ success: 'Model successfully deleted.' });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
