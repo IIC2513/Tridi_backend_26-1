@@ -3,8 +3,18 @@ const { Op, literal } = require("sequelize");
 const router = express.Router();
 
 const { User } = require('../models');
+const { sequelize } = require('../models');
 const { File } = require('../models');
 const { ModelTridi } = require('../models');
+const { uploadModelFile, removeModelFile } = require('../services/storageService');
+const requireAuth = require('../helpers/middlawares/authMiddlaware');
+const requireSeller = require('../helpers/middlawares/requireSeller');
+
+const ALLOWED = new Set(['.glb', '.gltf']);
+const rawModel = express.raw({
+  type: ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'],
+  limit: '50mb',
+});
 
 router.get('/', async (req, res) => {
     try {
