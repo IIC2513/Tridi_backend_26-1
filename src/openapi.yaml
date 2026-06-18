@@ -139,6 +139,32 @@ components:
               updatedAt:
                 type: string
                 format: date-time
+    Request:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - rejected
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            image:
+              type: string
+              nullable: true
 
   responses:
     Unauthorized:
@@ -194,6 +220,82 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{id}:
+    get:
+      summary: Get user profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      stats:
+                        type: object
+                        properties:
+                          c_sales:
+                            type: integer
+                          c_purchases:
+                            type: integer
+                          reputation:
+                            type: number
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{id}:
+    delete:
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: User successfully deleted.
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -634,3 +736,148 @@ paths:
           description: Purchase or Card not found
         '409':
           description: Conflict
+  /requests:
+    post:
+      summary: Create a request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                content:
+                  type: string
+              required:
+                - type
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Request'
+        '400':
+          description: Bad Request
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /requests/my:
+    get:
+      summary: Get current user's requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /requests:
+    get:
+      summary: Get all requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /requests/pending:
+    get:
+      summary: Get pending requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /requests/{requestId}:
+    patch:
+      summary: Update request status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - pending
+                    - approved
+                    - rejected
+              required:
+                - status
+      responses:
+        '200':
+          description: Request updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Request'
+        '400':
+          description: Invalid status
+        '404':
+          description: Request not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
