@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op, literal } = require("sequelize");
+const path = require('node:path');
 const router = express.Router();
-
 const { User } = require('../models');
 const { sequelize } = require('../models');
 const { File } = require('../models');
@@ -12,13 +12,12 @@ const requireSeller = require('../helpers/middlawares/requireSeller');
 
 const ALLOWED = new Set(['.glb', '.gltf']);
 const rawModel = express.raw({
-  type: ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'],
-  limit: '50mb',
+    type: ['model/gltf-binary', 'model/gltf+json', 'application/octet-stream'],
+    limit: '50mb',
 });
 
 router.get('/', async (req, res) => {
     try {
-
         const models = await ModelTridi.findAll({
             where: {
                 creatorId: {
@@ -37,9 +36,7 @@ router.get('/', async (req, res) => {
                 },
             ]
         });
-
         res.status(200).json({ data: models });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });
@@ -61,14 +58,80 @@ router.get('/:id', async (req, res) => {
                 },
             ]
         });
-        if (!model) return res.status(404).json({ error: '3D Model not found.' });
-
-        res.status(200).json({ data: model});
-        
+        if (!model) {
+            return res.status(404).json({ error: '3D Model not found.' });
+        }
+        res.status(200).json({ data: model });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
     }
-  });
+});
+
+router.post('/', requireAuth, requireSeller, async (req, res) => {
+    try {
+        const { name, description, price, tags } = req.body;
+        if (!name?.trim()) return res.status(400).json({ error: 'Falta el nombre' });
+
+        const model = await ModelTridi.create({
+            name: name.trim(),
+            description: description ?? null,
+            price: Number(price) || 0,
+            tags: Array.isArray(tags) ? tags : [],
+            creatorId: req.user.id,
+            date: new Date(),
+        });
+
+        return res.status(201).json({ data: model });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) => {
+    const ext = path.extname(req.query.filename?.toString() || '').toLowerCase();
+
+    if (!ALLOWED.has(ext)) {
+        return res.status(400).json({ error: 'Format not supported' });
+    }
+    if (!req.body?.length) {
+        return res.status(400).json({ error: 'Missing file' });
+    }
+    if (req.body.length > 50 * 1024 * 1024){
+        return res.status(400).json({ error: 'The file surpasses the size limit (50mb)' });
+    }
+    const model = await ModelTridi.findByPk(req.params.id);
+    if (!model) {
+        return res.status(404).json({ error: 'Model not fount' });
+    }
+    if (model.creatorId !== req.user.id)
+        return res.status(403).json({ error: 'Unauthorized' });
+
+    let stored;
+    try {
+        stored = await uploadModelFile({
+            buffer: req.body,
+            originalName: `model${ext}`,
+            contentType: req.headers['content-type'],
+            ownerId: req.user.id,
+        });
+        await File.create({
+            modelId: model.id,
+            route: stored.route,       
+            extension: stored.extension, 
+            size: stored.size,           
+        });
+
+        const withFiles = await ModelTridi.findByPk(model.id, {
+            include: [{ model: File, as: 'files' }],
+        });
+        return res.status(200).json({ data: withFiles });
+    } catch (err) {
+        if (stored?.key) await removeModelFile(stored.key).catch(() => {});
+        console.error('Model file upload failed:', err);
+        return res.status(500).json({ error: 'No se pudo subir el archivo' });
+    }
+});
 
 module.exports = router;
