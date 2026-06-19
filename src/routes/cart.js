@@ -202,7 +202,7 @@ router.post('/items', async (req, res) => {
         if (!modelId) {
             return res.status(400).json({ error: 'modelId is required.' });
         }
-        const model = await ModelTridi.findByPk(modelId);
+        const model = await ModelTridi.findByPk(modelId, { include: itemInclude[0].include });
         if (!model) {
             return res.status(404).json({ error: '3D Model not found :(' });
         }
@@ -210,12 +210,15 @@ router.post('/items', async (req, res) => {
         const cart = await getOrCreateCart(req.user.id);
         const existing = await CartItem.findOne({ where: { cartId: cart.id, modelId } });
         if (existing) {
-            const item = await CartItem.findByPk(existing.id, { include: itemInclude });
-            return res.status(200).json({ data: item, message: 'Already in cart.' });
+            return res.status(200).json({
+                data: { id: existing.id, cartId: cart.id, modelId, createdAt: existing.createdAt, ModelTridi: model },
+                message: 'Already in cart.',
+            });
         }
         const created = await CartItem.create({ cartId: cart.id, modelId });
-        const item = await CartItem.findByPk(created.id, { include: itemInclude });
-        res.status(201).json({ data: item });
+        res.status(201).json({
+            data: { id: created.id, cartId: cart.id, modelId, createdAt: created.createdAt, ModelTridi: model },
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
@@ -266,13 +269,18 @@ router.post('/items', async (req, res) => {
  */
 router.delete('/items/:id', async (req, res) => {
     try {
-        const cart = await getOrCreateCart(req.user.id);
-        const item = await CartItem.findOne({
+        const cart = await Cart.findOne({ where: { userId: req.user.id } });
+        if (!cart) { 
+            return res.status(404).json({ error: 'Cart item not found.' });
+        }
+
+        const deleted = await CartItem.destroy({
             where: { id: req.params.id, cartId: cart.id },
         });
-        if (!item) return res.status(404).json({ error: 'Cart item not found.' });
+        if (deleted === 0) {
+            return res.status(404).json({ error: 'Cart item not found.' });
+        }
 
-        await item.destroy();
         res.status(200).json({ data: { id: Number(req.params.id) } });
     } catch (error) {
         console.error(error);
