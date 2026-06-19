@@ -25,7 +25,7 @@ async function normalLogin(body) {
             status: 400
         }];
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.scope('withPassword').findOne({ where: { email } });
     if (!user)
         return [null, {
             message: 'Invalid email or password',
