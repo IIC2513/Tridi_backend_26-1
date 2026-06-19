@@ -22,6 +22,11 @@ module.exports = (sequelize, DataTypes) => {
         as: 'requests'
       });
 
+      User.hasMany(models.Comment, {
+        foreignKey: 'userId',
+        as: 'comments'
+      });
+
       User.hasOne(models.Stats, {
         foreignKey: 'userId',
         as: 'stats'

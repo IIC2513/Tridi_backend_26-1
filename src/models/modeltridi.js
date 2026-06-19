@@ -15,6 +15,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'modelId',
         as: 'files'
       });
+
+      ModelTridi.hasMany(models.Comment, {
+        foreignKey: 'modelId',
+        as: 'comments'
+      });
     }
   }
   ModelTridi.init({
