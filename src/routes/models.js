@@ -135,6 +135,49 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
     }
 });
 
+// PUT /:id – update model metadata (name, description, price, tags)
+router.patch('/:id', requireAuth, async (req, res) => {
+    try {
+        const model = await ModelTridi.findByPk(req.params.id);
+        if ((model.creatorId !== req.user.id) && (req.user.role !== 'admin')) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        if (!model) return res.status(404).json({ error: '3D Model not found.' });
+
+        const { name, description, price, tags } = req.body;
+        const updates = {};
+
+        if (name !== undefined) {
+            if (!String(name).trim()) return res.status(400).json({ error: 'Name cannot be empty.' });
+            updates.name = String(name).trim();
+        }
+        if (description !== undefined) updates.description = description ?? null;
+        if (price !== undefined) {
+            const n = Number(price);
+            if (isNaN(n) || n < 0) return res.status(422).json({ error: 'Price must be a non-negative number.' });
+            updates.price = n;
+        }
+        if (tags !== undefined) {
+            updates.tags = Array.isArray(tags) ? tags : [];
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update.' });
+        }
+
+        await model.update(updates);
+
+        const updatedModel = await ModelTridi.findByPk(model.id);
+
+        res.status(200).json({ data: updatedModel });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.delete('/:id', requireAuth, async (req, res) => {
     try {
         const model = await ModelTridi.findByPk(req.params.id);
