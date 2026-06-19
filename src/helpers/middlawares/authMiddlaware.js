@@ -47,11 +47,11 @@ const middlawareHandleLoggin = async (req, res, next) => {
             void Session.destroy({ where: { token } }).catch((dbError) => {
                 console.error('Background cleanup failed for expired session:', dbError);
             });
-            return res.status(401).json({ error: "Unauthorized: Token has expired" });
+            return res.status(401).json({ error: "Unauthorized: session has expired" });
         }
 
         console.error("Auth Error:", error);
-        return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
+        return res.status(403).json({ error: "Forbidden: Invalid or expired session" });
     }
 };
 
