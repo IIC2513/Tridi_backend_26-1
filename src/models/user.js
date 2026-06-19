@@ -92,7 +92,15 @@ module.exports = (sequelize, DataTypes) => {
                 transaction: options.transaction
             });
         }
-    }
+    },
+    defaultScope: {
+        attributes: { exclude: ['password'] },
+    },
+    scopes: {
+      withPassword: {
+        attributes: {},
+      },
+    },
   });
   return User;
 };
