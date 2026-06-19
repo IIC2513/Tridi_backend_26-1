@@ -165,6 +165,33 @@ components:
             image:
               type: string
               nullable: true
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        userId:
+          type: integer
+        modelId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            image:
+              type: string
+              nullable: true
 
   responses:
     Unauthorized:
@@ -879,5 +906,121 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /comments:
+    post:
+      summary: Create a comment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                modelId:
+                  type: integer
+              required:
+                - content
+                - modelId
+      responses:
+        '201':
+          description: Comment created
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 3D Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/{id}/comments:
+    get:
+      summary: Get comments for a 3D model
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        '404':
+          description: 3D Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /comments/{id}:
+    patch:
+      summary: Update a comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required:
+                - content
+      responses:
+        '200':
+          description: Comment updated
+        '400':
+          description: Content is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /comments/{id}:
+    delete:
+      summary: Delete a comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
         '500':
           $ref: '#/components/responses/InternalServerError'

@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 const middlawareHandleLoggin = require("../helpers/middlawares/authMiddlaware")
-const middlawareHandleAdmin = require("../helpers/middlawares/adminMiddlaware")
 
 const { Comment } = require('../models');
 const { User } = require('../models');
@@ -11,20 +10,28 @@ const { where } = require('sequelize');
 
 router.post('/', middlawareHandleLoggin, async (req, res) => {
     try {
-        const { type, content } = req.body;
+        const { content, modelId } = req.body;
 
-        if (!type){
-            return res.status(400).json({ error: 'type are required'});
+        if (!content){
+            return res.status(400).json({ error: 'content is required'});
         }
 
-        const request = await Request.create({
-            type: type,
+        if (!modelId){
+            return res.status(400).json({ error: 'Model id is required'});
+        }
+
+        const model = await ModelTridi.findByPk(modelId);
+        if (!model) {
+            return res.status(404).json({ error: '3D Model not found.' });
+        }
+
+        const comment = await Comment.create({
             content: content,
-            status: 'pending',
-            userId: req.user.id
+            userId: req.user.id,
+            modelId: modelId
         });
 
-        res.status(201).json({ data: request });
+        res.status(201).json({ data: comment });
         
     } catch (error) {
         console.error(error);
@@ -32,96 +39,47 @@ router.post('/', middlawareHandleLoggin, async (req, res) => {
     }
 });
 
-router.get('/my', async (req, res) => {
+router.patch('/:id', middlawareHandleLoggin, async (req, res) => {
     try {
 
-        const requests = await Request.findAll({
-            where: {
-                userId: req.user.id
-            },
-            attributes: ['id', 'type', 'content', 'status'],
-            include: [
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'username', 'image'],
-                }
-            ]
-        });
-
-        res.status(200).json({ data: requests });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-router.get('/', middlawareHandleAdmin, async (req, res) => {
-    try {
-        const requests = await Request.findAll({
-            attributes: ['id', 'type', 'content', 'status'],
-            include: [
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'username', 'image'],
-                }
-            ]
-        });
-
-        res.status(200).json({ data: requests });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-router.get('/pending', middlawareHandleAdmin, async (req, res) => {
-    try {
-        const requests = await Request.findAll({
-            where: {
-                status: 'pending'
-            },
-            attributes: ['id', 'type', 'content', 'status'],
-            include: [
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'username', 'image'],
-                }
-            ]
-        });
-
-        res.status(200).json({ data: requests });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-router.patch('/:requestId', middlawareHandleAdmin, async (req, res) => {
-    try {
-
-        const validStatus = ['pending', 'approved', 'rejected'];
-
-        if (!validStatus.includes(req.body.status)){
-            return res.status(400).json({error: 'Invalid status'});
+        if (!(req.body.content)){
+            return res.status(400).json({error: 'content is required'});
         }
 
-        const request = await Request.findByPk(req.params.requestId);
-        if (!request) return res.status(404).json({ error: 'Request not found.' });
+        const comment = await Comment.findByPk(req.params.id);
+        if (!comment) return res.status(404).json({ error: 'Comment not found.' });
 
-        await request.update({
-            status: req.body.status
+        if (comment.userId !== req.user.id){
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        await comment.update({
+            content: req.body.content
         });
 
-        res.status(200).json({ data: request });
+        res.status(200).json({ data: comment });
         
     } catch (error) {
         console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.delete('/:id', middlawareHandleLoggin, async (req, res) => {
+    try {
+        const comment = await Comment.findByPk(req.params.id);
+        if (!comment) return res.status(404).json({ error: 'Comment not found.' });
+
+        if ((comment.userId !== req.user.id) && (req.user.role !== 'admin')){
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        await comment.destroy();
+
+        res.status(200).json({ success: 'Comment successfully deleted.' });
+
+    } catch (error) {
+        console.log(error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

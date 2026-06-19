@@ -12,7 +12,7 @@ router.post('/', async (req, res) => {
         const { type, content } = req.body;
 
         if (!type){
-            return res.status(400).json({ error: 'type are required'});
+            return res.status(400).json({ error: 'type is required'});
         }
 
         const request = await Request.create({

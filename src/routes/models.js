@@ -7,6 +7,7 @@ const { User } = require('../models');
 const { sequelize } = require('../models');
 const { File } = require('../models');
 const { ModelTridi } = require('../models');
+const { Comment } = require('../models');
 const { uploadModelFile, removeModelFile } = require('../services/storageService');
 const requireAuth = require('../helpers/middlawares/authMiddlaware');
 const requireSeller = require('../helpers/middlawares/requireSeller');
@@ -132,6 +133,32 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
         if (stored?.key) await removeModelFile(stored.key).catch(() => {});
         console.error('Model file upload failed:', err);
         return res.status(500).json({ error: 'No se pudo subir el archivo' });
+    }
+});
+
+router.get('/:id/comments', async (req, res) => {
+    try {
+        const model = await ModelTridi.findByPk(req.params.id);
+        if (!model) return res.status(404).json({ error: '3D Model not found.' });
+
+        const comments = await Comment.findAll({
+            where: {
+                modelId: req.params.id
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'username', 'image'],
+                }
+            ]
+        });
+
+        res.status(200).json({ data: comments });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
