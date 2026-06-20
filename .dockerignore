@@ -1,0 +1,8 @@
+.env*
+
+.git
+
+coverage
+node_modules
+
+.*ignore

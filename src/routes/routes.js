@@ -12,6 +12,7 @@ const signupRouter = require('./signup');
 const purchasesRouter = require('./purchase');
 const cardRouter = require('./card');
 const requestRouter = require('./requests');
+const commentRouter = require('./comments');
 
 const middlawareHandleLoggin = require("../helpers/middlawares/authMiddlaware")
 const middlawareHandleAdmin = require("../helpers/middlawares/adminMiddlaware")
@@ -25,6 +26,7 @@ router.use('/requests', middlawareHandleLoggin, requestRouter);
 router.use('/cart', middlawareHandleLoggin, cartRouter);
 router.use('/purchases', middlawareHandleLoggin, purchasesRouter);
 router.use('/cards', cardRouter);
+router.use('/comments', commentRouter);
 
 const swaggerPath = path.join(__dirname, '../openapi.yaml');
 const swaggerDocument = YAML.load(swaggerPath);

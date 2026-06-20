@@ -26,9 +26,12 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:username', async (req, res) => {
     try {
-        const user = await User.findByPk(req.params.id, {
+        const user = await User.findOne({
+            where: {
+                username: req.params.username
+            },
             attributes: ['id', 'username', 'image', 'seller', 'role'],
             include: [
                 {
