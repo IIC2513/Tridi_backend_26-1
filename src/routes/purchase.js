@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Purchase, PurchaseItem, Cart, CartItem, ModelTridi, Card, File, User } = require('../models');
+const { Purchase, PurchaseItem, Cart, CartItem, ModelTridi, Card, File, User, Stats } = require('../models');
 const { canTransition } = require('../services/purchaseStateMachine');
 const mock = require('../services/paymentMock');
 
@@ -110,7 +110,20 @@ router.get('/items/by/:buyerId', async (req, res) => {
 
 router.patch('/:id/status', async (req, res) => {
     const { status: target } = req.body;
-    const purchase = await Purchase.findByPk(req.params.id);
+
+    const purchase = await Purchase.findByPk(req.params.id, {
+        include: [
+            {
+                model: PurchaseItem,
+                include: [
+                    {
+                        model: ModelTridi
+                    }
+                ]
+            }
+        ]
+    });
+
     if (!purchase) {
         return res.status(404).json({ error: "Purchase not found" });
     }
@@ -120,6 +133,48 @@ router.patch('/:id/status', async (req, res) => {
     if (!canTransition(purchase.status, target)) {
         return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${target}` });
     }
+
+    if (target === 'paid' && purchase.status !== 'paid') {
+
+        const stats = await Stats.findOne({
+            where: { userId: req.user.id }
+        });
+
+        if (!stats) {
+            return res.status(404).json({ error: 'Stats not found.' });
+        }
+
+        const itemsCount = purchase.PurchaseItems.length;
+
+        await stats.update({
+            c_purchases: stats.c_purchases + itemsCount
+        });
+
+        const salesPerCreator = {};
+
+        for (const item of purchase.PurchaseItems) {
+            const creatorId = item.ModelTridi.creatorId;
+
+            salesPerCreator[creatorId] =
+                (salesPerCreator[creatorId] || 0) + 1;
+        }
+
+        for (const [creatorId, count] of Object.entries(salesPerCreator)) {
+
+            const stats = await Stats.findOne({
+                where: {
+                    userId: creatorId
+                }
+            });
+
+            if (stats) {
+                await stats.update({
+                    c_sales: stats.c_sales + count
+                });
+            }
+        }
+    }
+
     await purchase.update({ status: target });
     res.json(purchase);
 });
