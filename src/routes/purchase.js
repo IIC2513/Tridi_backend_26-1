@@ -108,6 +108,63 @@ router.get('/items/by/:buyerId', async (req, res) => {
     return res.json(extractedModels);
 });
 
+router.put('/:id', async (req, res) => {
+    try {
+        const purchase = await Purchase.findByPk(req.params.id);
+        if (!purchase) {
+            return res.status(404).json({ error: 'Purchase not found.' });
+        }
+        if (purchase.buyerId !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        const { total, status } = req.body;
+        const updates = {};
+
+        if (total !== undefined) {
+            const n = Number(total);
+            if (isNaN(n) || n < 0) {
+                return res.status(422).json({ error: 'Total must be a non-negative number.' });
+            }
+            updates.total = n;
+        }
+        if (status !== undefined) {
+            if (!canTransition(purchase.status, status)) {
+                return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${status}` });
+            }
+            updates.status = status;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update.' });
+        }
+
+        await purchase.update(updates);
+        res.json(purchase);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+router.delete('/:id', async (req, res) => {
+    try {
+        const purchase = await Purchase.findByPk(req.params.id);
+        if (!purchase) {
+            return res.status(404).json({ error: 'Purchase not found.' });
+        }
+        if (purchase.buyerId !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        await purchase.destroy();
+        res.status(200).json({ success: 'Purchase successfully deleted.' });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.patch('/:id/status', async (req, res) => {
     const { status: target } = req.body;
 

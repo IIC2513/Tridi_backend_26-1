@@ -249,6 +249,67 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a new user (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                image:
+                  type: string
+                seller:
+                  type: boolean
+                role:
+                  type: string
+              required:
+                - username
+                - email
+                - password
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: Missing required fields or invalid image
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Email or username already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/{username}:
     get:
@@ -297,7 +358,70 @@ paths:
 
   /users/{id}:
     put:
-      summary: Update user profile
+      summary: Update user profile (full update)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                image:
+                  type: string
+                seller:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: No valid fields to update or invalid image
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+        '409':
+          description: Email or username already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update user profile (partial update)
       security:
         - bearerAuth: []
       parameters:
@@ -974,6 +1098,73 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           description: Purchase not found
+    put:
+      summary: Update a purchase
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total:
+                  type: number
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Purchase updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '400':
+          description: No valid fields to update
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+        '409':
+          description: Conflict (Invalid transition)
+        '422':
+          description: Total must be a non-negative number
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a purchase
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Purchase successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: Purchase successfully deleted.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /purchases/{id}/status:
     patch:
