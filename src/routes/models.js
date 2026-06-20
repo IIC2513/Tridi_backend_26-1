@@ -1,10 +1,9 @@
 const express = require('express');
-const { Op, literal } = require("sequelize");
+const { Op } = require("sequelize");
 const path = require('node:path');
 const router = express.Router();
 
 const { User } = require('../models');
-const { sequelize } = require('../models');
 const { File } = require('../models');
 const { ModelTridi } = require('../models');
 const { Comment } = require('../models');
@@ -21,21 +20,10 @@ const rawModel = express.raw({
 router.get('/', async (req, res) => {
     try {
         const models = await ModelTridi.findAll({
-            where: {
-                creatorId: {
-                    [Op.not]: null
-                }
-            },
+            where: { creatorId: { [Op.not]: null } },
             include: [
-                {
-                    model: File,
-                    as: 'files',
-                },
-                {
-                    model: User,
-                    as: 'creator',
-                    attributes: ['id', 'username', 'image'],
-                },
+                { model: File, as: 'files' },
+                { model: User, as: 'creator', attributes: ['id', 'username', 'image'] },
             ]
         });
         res.status(200).json({ data: models });
@@ -50,15 +38,8 @@ router.get('/created/:ownerId', async (req, res) => {
         const models = await ModelTridi.findAll({
             where: { creatorId: req.params.ownerId },
             include: [
-                {
-                    model: File,
-                    as: 'files',
-                },
-                {
-                    model: User,
-                    as: 'creator',
-                    attributes: ['id', 'username', 'image'],
-                },
+                { model: File, as: 'files' },
+                { model: User, as: 'creator', attributes: ['id', 'username', 'image'] },
             ]
         });
         res.status(200).json({ data: models });
@@ -72,15 +53,8 @@ router.get('/:id', async (req, res) => {
     try {
         const model = await ModelTridi.findByPk(req.params.id, {
             include: [
-                {
-                    model: File,
-                    as: 'files',
-                },
-                {
-                    model: User,
-                    as: 'creator',
-                    attributes: ['id', 'username', 'image'],
-                },
+                { model: File, as: 'files' },
+                { model: User, as: 'creator', attributes: ['id', 'username', 'image'] },
             ]
         });
         if (!model) {
@@ -123,7 +97,7 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
     if (!req.body?.length) {
         return res.status(400).json({ error: 'Missing file' });
     }
-    if (req.body.length > 50 * 1024 * 1024){
+    if (req.body.length > 50 * 1024 * 1024) {
         return res.status(400).json({ error: 'The file surpasses the size limit (50mb)' });
     }
     const model = await ModelTridi.findByPk(req.params.id);
@@ -159,15 +133,14 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
     }
 });
 
-// PUT /:id – update model metadata (name, description, price, tags)
 router.patch('/:id', requireAuth, async (req, res) => {
     try {
         const model = await ModelTridi.findByPk(req.params.id);
+        if (!model) return res.status(404).json({ error: '3D Model not found.' });
+
         if ((model.creatorId !== req.user.id) && (req.user.role !== 'admin')) {
             return res.status(403).json({ error: 'Forbidden' });
         }
-
-        if (!model) return res.status(404).json({ error: '3D Model not found.' });
 
         const { name, description, price, tags } = req.body;
         const updates = {};
@@ -195,7 +168,6 @@ router.patch('/:id', requireAuth, async (req, res) => {
         const updatedModel = await ModelTridi.findByPk(model.id);
 
         res.status(200).json({ data: updatedModel });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
@@ -208,20 +180,13 @@ router.get('/:id/comments', async (req, res) => {
         if (!model) return res.status(404).json({ error: '3D Model not found.' });
 
         const comments = await Comment.findAll({
-            where: {
-                modelId: req.params.id
-            },
+            where: { modelId: req.params.id },
             include: [
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'username', 'image'],
-                }
+                { model: User, as: 'user', attributes: ['id', 'username', 'image'] }
             ]
         });
 
         res.status(200).json({ data: comments });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });
@@ -233,29 +198,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
         const model = await ModelTridi.findByPk(req.params.id);
         if (!model) return res.status(404).json({ error: '3D Model not found.' });
 
-        if ((model.creatorId !== req.user.id) && (req.user.role !== 'admin')){
+        if ((model.creatorId !== req.user.id) && (req.user.role !== 'admin')) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
         await model.destroy();
 
         res.status(200).json({ success: 'Model successfully deleted.' });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });
     }
-});
-
-router.get("/created/:ownerId", requireAuth, async (req, res) => {
-    if (Number(req.params.ownerId) !== req.user.id && req.user.role !== 'admin')
-        return res.status(403).json({error: "Forbidden"});
-
-    const models = await ModelTridi.findAll({
-        where: { creatorId: Number(req.params.ownerId) }
-    });
-
-    return res.json(models);
 });
 
 module.exports = router;
