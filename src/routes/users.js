@@ -189,6 +189,13 @@ router.put('/:id', async (req, res) => {
 
         const updatedUser = await User.findByPk(user.id, {
             attributes: ['id', 'username', 'image', 'seller', 'role', 'email'],
+            include: [
+                {
+                    model: Stats,
+                    as: 'stats',
+                    attributes: ['c_sales', 'c_purchases', 'reputation'],
+                }
+            ]
         });
 
         res.status(200).json({ data: updatedUser });
