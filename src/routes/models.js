@@ -45,6 +45,29 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/created/:ownerId', async (req, res) => {
+    try {
+        const models = await ModelTridi.findAll({
+            where: { creatorId: req.params.ownerId },
+            include: [
+                {
+                    model: File,
+                    as: 'files',
+                },
+                {
+                    model: User,
+                    as: 'creator',
+                    attributes: ['id', 'username', 'image'],
+                },
+            ]
+        });
+        res.status(200).json({ data: models });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const model = await ModelTridi.findByPk(req.params.id, {
@@ -120,9 +143,9 @@ router.put('/:id/file', requireAuth, requireSeller, rawModel, async (req, res) =
         });
         await File.create({
             modelId: model.id,
-            route: stored.route,       
-            extension: stored.extension, 
-            size: stored.size,           
+            route: stored.route,
+            extension: stored.extension,
+            size: stored.size,
         });
 
         const withFiles = await ModelTridi.findByPk(model.id, {
