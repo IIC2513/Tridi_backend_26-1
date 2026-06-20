@@ -4,6 +4,8 @@ const router = express.Router();
 const { User } = require('../models');
 const { Stats } = require('../models');
 
+const { validateImageUrl } = require('../services/validateImg');
+
 router.get('/', async (req, res) => {
     try {
 
@@ -71,7 +73,13 @@ router.put('/:id', async (req, res) => {
             if (password !== undefined) updates.password = password;
         }
 
-        if (image !== undefined) updates.image = image;
+        if (image !== undefined && image.trim() !== ''){
+            const check = await validateImageUrl(image.trim());
+            if (!check.valid) {
+                return res.status(400).json({ error: `Invalid image: ${check.reason}` });
+            }
+            updates.image = image.trim();
+        }
         if (seller !== undefined && req.user.role === 'admin') {
             updates.seller = seller;
         }
