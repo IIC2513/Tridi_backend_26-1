@@ -51,6 +51,53 @@ router.get('/:username', async (req, res) => {
     }
 });
 
+router.put('/:id', async (req, res) => {
+    try {
+        const user = await User.findByPk(req.params.id);
+
+        if ((Number(req.params.id) !== req.user.id) && (req.user.role !== 'admin')) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        if (!user) return res.status(404).json({ error: 'User not found.' });
+
+        const { username, email, password, image, seller } = req.body;
+
+        const updates = {};
+
+        if (Number(req.params.id) == req.user.id) {
+            if (username !== undefined) updates.username = username;
+            if (email !== undefined) updates.email = email;
+            if (password !== undefined) updates.password = password;
+        }
+
+        if (image !== undefined) updates.image = image;
+        if (seller !== undefined && req.user.role === 'admin') {
+            updates.seller = seller;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ error: 'No valid fields to update.' });
+        }
+
+        await user.update(updates);
+
+        const updatedUser = await User.findByPk(user.id, {
+            attributes: ['id', 'username', 'image', 'seller', 'role', 'email'],
+        });
+
+        res.status(200).json({ data: updatedUser });
+
+    } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            const field = error.errors?.[0]?.path;
+            return res.status(409).json({ error: `${field} is already in use.` });
+        }
+        console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 router.delete('/:id', async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);

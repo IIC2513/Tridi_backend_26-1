@@ -1,0 +1,638 @@
+#+title: Openapi
+
+Tridi Api
+- Version 1
+- api.tridi.jessica.cl
+
+* Server error
+- 500 Internal server error
+
+* Auth
+token as ="Authorization: Bearer TOKEN"=
+
+Some endpoints needs a session token for authentication, if not given or if it's invalid the api will response with:
+- (401).json({ error: "Unauthorized: Session not found or logged out" });
+- (401).json({ error: "Unauthorized: Session has expired" });
+- (403).json({ error: "Forbidden: Invalid or expired token" });
+
+If valid will continue with the request, and return its value.
+
+* /users
+** /
+Needs Auth
+
+returns all the users.
+#+BEGIN_SRC json
+{
+  "data": [
+    {
+      "id": 1,
+      "username": "verdito",
+      "image": null,
+      "seller": false,
+      "role": "user",
+      "stats": {
+        "c_sales": 0,
+        "c_purchases": 0,
+        "reputation": 0
+      }
+    }
+]
+}
+#+END_SRC
+* /login
+There are two ways to authenticate: using standard credentials (email and password) or using a Supabase provider token for third-party OAuth logins.
+
+** POST /login (Normal Login)
+Expects the user's standard credentials in the request body.
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "email": "user@example.com",
+  "password": "your_secure_password"
+}
+#+END_SRC
+
+Responses:
+- (400) Bad Request: Missing required fields.
+#+BEGIN_SRC json
+{
+  "message": "Email and password are required",
+  "status": 400
+}
+#+END_SRC
+
+- (401) Unauthorized: Wrong email or password.
+#+BEGIN_SRC json
+{
+  "message": "Invalid email or password",
+  "status": 401
+}
+#+END_SRC
+
+- (200) OK: Authentication successful. Returns the authenticated user object.
+
+** POST /login (Supabase Provider Token)
+If a =providerToken= is sent in the body, the API bypasses the normal login flow and validates the token directly with Supabase.
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "providerToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+}
+#+END_SRC
+
+Behavior:
+- Verifies the =providerToken= using Supabase's =getUser()= method.
+- If the token is valid, it retrieves the user metadata (username, full name, email, avatar).
+- If the user does not exist in the local database, it automatically creates a new account with the extracted data, assigning default values (="role": "user"= and ="seller": false=).
+
+Responses:
+- Error: If the provider token is invalid or Supabase rejects it, it returns the native Supabase error object.
+- (200) OK: Authentication/Registration successful. Returns the local database user object.
+* /signup
+Endpoint to register a new account. The exact behavior depends on the underlying signup strategy.
+
+** POST /signup
+Expects user registration data in the request body. The specific fields required will vary depending on the strategy (e.g., standard credentials vs. provider tokens).
+
+*Note: The =image= field is entirely optional. If omitted, the user's image will default to =null=.*
+
+Request Body (Example including the optional image URL):
+#+BEGIN_SRC json
+{
+  "email": "jondove@jondove.cl",
+  "password": "your_secure_password",
+  "username": "jondove",
+  "image": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperaccess.com%2Ffull%2F1110114.jpg&f=1&nofb=1&ipt=f1fcd2c4e15959d53eade967b514562abe981fc79dc38df4631150737315301e"
+}
+#+END_SRC
+
+Responses:
+- (Error Status) Strategy Error: If the signup strategy fails (e.g., missing required fields, email already in use), it dynamically returns the status and error object provided by the strategy.
+#+BEGIN_SRC json
+{
+  "error": {
+    "message": "Email already in use",
+    "status": 409
+  }
+}
+#+END_SRC
+
+- (200) OK: Returned if the strategy completes successfully but indicates a new user was *not* created (e.g., handling an existing user via a third-party provider). Returns the user object with the password safely stripped.
+#+BEGIN_SRC json
+{
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "username": "existing_user",
+    "image": null,
+    "role": "user"
+  }
+}
+#+END_SRC
+
+- (201) Created: A new user was successfully registered. A session is automatically created for the new user. Returns the user object (with the =image= field populated if provided) and the newly created session details.
+#+BEGIN_SRC json
+{
+  "user": {
+    "id": 17,
+    "username": "jondove",
+    "email": "jondove@jondove.cl",
+    "image": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperaccess.com%2Ffull%2F1110114.jpg&f=1&nofb=1&ipt=f1fcd2c4e15959d53eade967b514562abe981fc79dc38df4631150737315301e",
+    "role": "user",
+    "seller": false,
+    "updatedAt": "2026-06-05T18:52:19.617Z",
+    "createdAt": "2026-06-05T18:52:19.617Z",
+    "externalId": null
+  },
+  "session": {
+    "id": 67,
+    "userId": 17,
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE3LCJpYXQiOjE3ODA2ODU1MzksImV4cCI6MTc4MDY4OTEzOX0.uiP_eN2bs7D640F9fKb6g1FtydcZ6_k29lXKalFDXl0",
+    "exp_date": "2026-06-05T19:52:19.949Z",
+    "updatedAt": "2026-06-05T18:52:19.949Z",
+    "createdAt": "2026-06-05T18:52:19.949Z"
+  }
+}
+#+END_SRC
+
+- (500) Internal Server Error: If an unhandled exception occurs during the signup or session creation process.
+#+BEGIN_SRC json
+{
+  "error": "Internal server error message details"
+}
+#+END_SRC
+
+* /models
+Endpoints to retrieve 3D models. These endpoints return the model data along with its associated files and the basic profile of its creator.
+
+** GET /models/
+Retrieves a list of all 3D models that have an assigned creator (filters out models where =creatorId= is =null=).
+
+Responses:
+- (200) OK: Returns an array of model objects inside a =data= property.
+#+BEGIN_SRC json
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Articulated Dragon",
+      "description": "Print-in-place articulated dragon model.",
+      "price": 5000,
+      "creatorId": 17,
+      "createdAt": "2026-06-05T18:52:19.617Z",
+      "updatedAt": "2026-06-05T18:52:19.617Z",
+      "files": [
+        {
+          "id": 101,
+          "modelId": 1,
+          "url": "https://s3.example.com/models/dragon.stl",
+          "type": "model/stl"
+        }
+      ],
+      "creator": {
+        "id": 17,
+        "username": "jondove",
+        "image": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperaccess.com%2Ffull%2F1110114.jpg&f=1&nofb=1&ipt=f1fcd2c4e15959d53eade967b514562abe981fc79dc38df4631150737315301e"
+      }
+    }
+  ]
+}
+#+END_SRC
+
+- (500) Internal Server Error: If an unhandled exception occurs while querying the database.
+#+BEGIN_SRC json
+{
+  "error": "Internal server error"
+}
+#+END_SRC
+
+** GET /models/:id
+Retrieves the details of a specific 3D model by its primary key (=id=).
+
+Path Parameters:
+- =id= (Integer): The unique identifier of the 3D model.
+
+Responses:
+- (200) OK: Returns the specific model object inside a =data= property. Includes associated files and creator.
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 1,
+    "title": "Articulated Dragon",
+    "description": "Print-in-place articulated dragon model.",
+    "price": 5000,
+    "creatorId": 17,
+    "createdAt": "2026-06-05T18:52:19.617Z",
+    "updatedAt": "2026-06-05T18:52:19.617Z",
+    "files": [
+      {
+        "id": 101,
+        "modelId": 1,
+        "url": "https://s3.example.com/models/dragon.stl",
+        "type": "model/stl"
+      }
+    ],
+    "creator": {
+      "id": 17,
+      "username": "jondove",
+      "image": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpaperaccess.com%2Ffull%2F1110114.jpg&f=1&nofb=1&ipt=f1fcd2c4e15959d53eade967b514562abe981fc79dc38df4631150737315301e"
+    }
+  }
+}
+#+END_SRC
+
+- (404) Not Found: If no model matches the provided =id=.
+#+BEGIN_SRC json
+{
+  "error": "3D Model not found."
+}
+#+END_SRC
+
+- (500) Internal Server Error: If an unhandled exception occurs while querying the database.
+#+BEGIN_SRC json
+{
+  "error": "Internal server error"
+}
+#+END_SRC
+
+* /cart
+Endpoints to manage the user's shopping cart.
+
+*Note: All endpoints in this section require Authentication. If the session token is missing, invalid, or expired, standard Auth errors (401 or 403) will be returned.*
+
+** GET /cart
+Retrieves the authenticated user's current cart, including all added items, model details, and a dynamically calculated subtotal.
+
+Responses:
+- (200) OK: Returns the cart data, the list of items, and the subtotal.
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 1,
+    "subtotal": 49.97,
+    "items": [
+      {
+        "id": 5,
+        "cartId": 1,
+        "modelId": 12,
+        "createdAt": "2026-06-05T18:52:19.617Z",
+        "ModelTridi": {
+          "id": 12,
+          "price": 19.99,
+          "files": [
+            {
+              "id": 105,
+              "url": "https://s3.example.com/models/file.stl"
+            }
+          ],
+          "creator": {
+            "id": 3,
+            "username": "Yadran Eterovic",
+            "image": "https://example.com/avatar.jpg"
+          }
+        }
+      }
+    ]
+  }
+}
+#+END_SRC
+
+- (500) Internal Server Error: Unhandled server exception.
+#+BEGIN_SRC json
+{
+  "error": "Internal server error"
+}
+#+END_SRC
+
+** POST /cart/items
+Adds a specific 3D model to the user's cart.
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "modelId": 12
+}
+#+END_SRC
+
+Responses:
+- (201) Created: The model was successfully added to the cart. Returns the created cart item.
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 5,
+    "cartId": 1,
+    "modelId": 12,
+    "createdAt": "2026-06-05T18:52:19.617Z",
+    "ModelTridi": {
+      "id": 12,
+      "price": 19.99,
+      "files": [],
+      "creator": {
+        "id": 3,
+        "username": "johndoe",
+        "image": null
+      }
+    }
+  }
+}
+#+END_SRC
+
+- (200) OK: The model is already present in the user's cart.
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 5,
+    "cartId": 1,
+    "modelId": 12
+    // ... complete item object ...
+  },
+  "message": "Already in cart."
+}
+#+END_SRC
+
+- (400) Bad Request: Missing the required =modelId= in the request body.
+#+BEGIN_SRC json
+{
+  "error": "modelId is required."
+}
+#+END_SRC
+
+- (404) Not Found: The specified =modelId= does not exist in the database.
+#+BEGIN_SRC json
+{
+  "error": "3D Model not found :("
+}
+#+END_SRC
+
+- (500) Internal Server Error.
+
+** DELETE /cart/items/:id
+Removes a specific item from the user's cart.
+
+Path Parameters:
+- =id= (Integer): The unique identifier of the *Cart Item* (not the Model ID).
+
+Responses:
+- (200) OK: The item was successfully removed. Returns the ID of the deleted item.
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 5
+  }
+}
+#+END_SRC
+
+- (404) Not Found: The specified cart item ID does not exist or does not belong to the user's cart.
+#+BEGIN_SRC json
+{
+  "error": "Cart item not found."
+}
+#+END_SRC
+
+- (500) Internal Server Error.
+
+* /cards
+Endpoints to manage the user's saved payment methods.
+
+*Note: All endpoints in this section require Authentication. If the session token is missing, invalid, or expired, standard Auth errors (401 or 403) will be returned.*
+
+** GET /cards
+Retrieves a list of all saved credit/debit cards for the authenticated user. The cards are ordered from oldest to newest based on their creation date.
+
+Responses:
+- (200) OK: Returns an array of card objects inside a =data= property. Only the last 4 digits are returned for security.
+#+BEGIN_SRC json
+{
+  "data": [
+    {
+      "id": 1,
+      "brand": "visa",
+      "last4": "6767",
+      "expMonth": 8,
+      "expYear": 2030,
+      "userId": 3,
+      "createdAt": "2026-06-05T18:52:19.617Z"
+    }
+  ]
+}
+#+END_SRC
+
+- (500) Internal Server Error.
+
+** POST /cards
+Saves a new credit/debit card for the authenticated user. The endpoint automatically removes blank spaces from the card number, detects the card brand (Visa, Mastercard, Amex, or generic 'card'), validates the digits, and checks the expiration date against the current date.
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "number": "6792 0082 8392 0067",
+  "expMonth": 8,
+  "expYear": 2027
+}
+#+END_SRC
+
+Responses:
+- (201) Created: The card was successfully saved. Returns the new card's details (omitting the full number and the internal token).
+#+BEGIN_SRC json
+{
+  "data": {
+    "id": 1,
+    "brand": "visa",
+    "last4": "0067",
+    "expMonth": 8,
+    "expYear": 2027
+  }
+}
+#+END_SRC
+
+- (400) Bad Request: If any required field (=number=, =expMonth=, =expYear=) is missing.
+#+BEGIN_SRC json
+{
+  "error": "number, expMonth and expYear are required."
+}
+#+END_SRC
+
+- (422) Unprocessable Entity: If the data fails validation
+
+* /purchases
+Endpoints to manage the user's purchases and payment flow.
+
+*Note: All endpoints in this section require Authentication. If the session token is missing, invalid, or expired, standard Auth errors (401 or 403) will be returned.*
+
+** POST /purchases
+Creates a new purchase using the items currently in the authenticated user's cart. The total price is calculated and frozen, and the purchase is created with a =pending= status. *Note: The cart is not emptied at this stage; it is emptied only after a successful payment.*
+
+Responses:
+- (201) Created: The purchase was successfully generated. Returns the purchase object.
+#+BEGIN_SRC json
+{
+  "id": 1,
+  "buyerId": 42,
+  "date": "2026-06-04T18:30:00.000Z",
+  "total": 19990.00,
+  "status": "pending",
+  "createdAt": "2026-06-05T18:52:19.617Z",
+  "updatedAt": "2026-06-05T18:52:19.617Z"
+}
+#+END_SRC
+
+- (422) Unprocessable Entity: If the user's cart is empty.
+#+BEGIN_SRC json
+{
+  "error": "cart is empty."
+}
+#+END_SRC
+
+- (500) Internal Server Error.
+
+** GET /purchases
+Retrieves a list of all purchases made by the authenticated user.
+
+Responses:
+- (200) OK: Returns an array of purchase objects.
+#+BEGIN_SRC json
+[
+  {
+    "id": 1,
+    "buyerId": 42,
+    "date": "2026-06-04T18:30:00.000Z",
+    "total": 19990.00,
+    "status": "pending",
+    "createdAt": "2026-06-05T18:52:19.617Z",
+    "updatedAt": "2026-06-05T18:52:19.617Z"
+  }
+]
+#+END_SRC
+
+- (500) Internal Server Error.
+
+** GET /purchases/:id
+Retrieves the details of a specific purchase, including all the individual items (=PurchaseItems=) contained within it.
+
+Path Parameters:
+- =id= (Integer): The unique identifier of the purchase.
+
+Responses:
+- (200) OK: Returns the purchase object along with its associated items.
+#+BEGIN_SRC json
+{
+  "id": 1,
+  "buyerId": 42,
+  "date": "2026-06-04T18:30:00.000Z",
+  "total": 19990.00,
+  "status": "pending",
+  "createdAt": "2026-06-05T18:52:19.617Z",
+  "updatedAt": "2026-06-05T18:52:19.617Z",
+  "PurchaseItems": [
+    {
+      "id": 10,
+      "purchaseId": 1,
+      "modelId": 7,
+      "unitPrice": 9990.00,
+      "createdAt": "2026-06-05T18:52:19.617Z",
+      "updatedAt": "2026-06-05T18:52:19.617Z"
+    }
+  ]
+}
+#+END_SRC
+
+- (403) Forbidden: The purchase belongs to another user.
+#+BEGIN_SRC json
+{
+  "error": "Forbidden"
+}
+#+END_SRC
+
+- (404) Not Found: The purchase ID does not exist.
+#+BEGIN_SRC json
+{
+  "error": "Purchase not found"
+}
+#+END_SRC
+
+** PATCH /purchases/:id/status
+Updates the status of a specific purchase. This endpoint validates the change against a state machine (=canTransition=) to prevent illogical status jumps (e.g., going from =pending= directly to =refunded=).
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "status": "completed"
+}
+#+END_SRC
+
+Responses:
+- (200) OK: The status was successfully updated. Returns the updated purchase object.
+#+BEGIN_SRC json
+{
+  "id": 1,
+  "buyerId": 42,
+  "total": 19990.00,
+  "status": "completed"
+  // ... timestamps
+}
+#+END_SRC
+
+- (403) Forbidden: The purchase belongs to another user.
+- (404) Not Found: The purchase ID does not exist.
+- (409) Conflict: The requested status transition is invalid.
+#+BEGIN_SRC json
+{
+  "error": "Invalid transition: pending → refunded"
+}
+#+END_SRC
+
+** POST /purchases/:id/pay
+Processes the payment for a specific purchase using a saved card. If successful, the purchase status changes to =paid= and the user's cart is automatically emptied.
+
+Request Body:
+#+BEGIN_SRC json
+{
+  "cardId": 3
+}
+#+END_SRC
+
+Responses:
+- (200) OK: Payment successful. Returns the updated purchase object and a transaction ID.
+#+BEGIN_SRC json
+{
+  "purchase": {
+    "id": 1,
+    "buyerId": 42,
+    "total": 19990.00,
+    "status": "paid"
+    // ... timestamps
+  },
+  "transactionId": "txn_a1b2c3"
+}
+#+END_SRC
+
+- (402) Payment Required: The payment mock rejected the charge. The purchase status is updated to =failed=. Returns the reason for failure.
+#+BEGIN_SRC json
+{
+  "error": "Payment failed",
+  "reason": "insufficient_funds",
+  "purchase": {
+    "id": 1,
+    "status": "failed"
+    // ...
+  }
+}
+#+END_SRC
+
+- (403) Forbidden: The purchase belongs to another user.
+- (404) Not Found: The purchase ID does not exist, or the provided =cardId= does not exist/belong to the user.
+#+BEGIN_SRC json
+{
+  "error": "Card not found."
+}
+#+END_SRC
+
+- (409) Conflict: The purchase is in a state that cannot be paid (must be =pending= or =failed=).
+#+BEGIN_SRC json
+{
+  "error": "Cannot pay a paid purchase"
+}
+#+END_SRC
