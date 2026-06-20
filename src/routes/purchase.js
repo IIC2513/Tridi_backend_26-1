@@ -108,4 +108,20 @@ router.get('/items/by/:buyerId', async (req, res) => {
     return res.json(extractedModels);
 });
 
+router.patch('/:id/status', async (req, res) => {
+    const { status: target } = req.body;
+    const purchase = await Purchase.findByPk(req.params.id);
+    if (!purchase) {
+        return res.status(404).json({ error: "Purchase not found" });
+    }
+    if (purchase.buyerId !== req.user.id) {
+        return res.status(403).json({ error: 'Forbidden' });
+    }
+    if (!canTransition(purchase.status, target)) {
+        return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${target}` });
+    }
+    await purchase.update({ status: target });
+    res.json(purchase);
+});
+
 module.exports = router;
