@@ -197,4 +197,15 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
 });
 
+router.get("/created/:ownerId", requireAuth, async (req, res) => {
+    if (Number(req.params.ownerId) !== req.user.id && req.user.role !== 'admin')
+        return res.status(403).json({error: "Forbidden"});
+
+    const models = await ModelTridi.findAll({
+        where: { creatorId: Number(req.params.ownerId) }
+    });
+
+    return res.json(models);
+});
+
 module.exports = router;

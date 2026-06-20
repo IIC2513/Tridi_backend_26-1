@@ -48,7 +48,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// TODO: require middaware
 router.put('/:id', async (req, res) => {
     try {
         const user = await User.findByPk(req.params.id);
