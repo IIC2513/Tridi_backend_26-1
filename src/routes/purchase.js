@@ -60,7 +60,7 @@ router.post('/:id/pay', async (req, res) => {
     const result = mock.charge({ amount: purchase.total, card });
 
     if (result.success) {
-        await purchase.update({ status: 'paid' });
+        await purchase.update({ status: 'completed' });
         return res.json({ purchase, transactionId: result.transactionId });
     }
     if (purchase.status === 'pending') {
