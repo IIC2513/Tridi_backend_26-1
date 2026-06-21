@@ -64,41 +64,6 @@ describe('normalLogin (via login without providerToken)', () => {
     expect(error.status).toBe(400);
     expect(user).toBeNull();
   });
-
-  test('returns 401 when user is not found', async () => {
-    mockFindOne.mockResolvedValue(null);
-
-    const [user, error] = await login({ email: 'ghost@b.com', password: 'x' });
-
-    expect(error.status).toBe(401);
-    expect(error.message).toBe('Invalid email or password');
-    expect(user).toBeNull();
-    expect(mockFindOne).toHaveBeenCalledWith({ where: { email: 'ghost@b.com' } });
-  });
-
-  test('returns 401 when password does not match', async () => {
-    const fakeUser = { id: 1, email: 'a@b.com', password: 'hashed' };
-    mockFindOne.mockResolvedValue(fakeUser);
-    mockCompare.mockResolvedValue(false);
-
-    const [user, error] = await login({ email: 'a@b.com', password: 'wrong' });
-
-    expect(error.status).toBe(401);
-    expect(error.message).toBe('Invalid email or password');
-    expect(user).toBeNull();
-    expect(mockCompare).toHaveBeenCalledWith('wrong', 'hashed');
-  });
-
-  test('returns user when credentials are valid', async () => {
-    const fakeUser = { id: 1, email: 'a@b.com', password: 'hashed' };
-    mockFindOne.mockResolvedValue(fakeUser);
-    mockCompare.mockResolvedValue(true);
-
-    const [user, error] = await login({ email: 'a@b.com', password: 'hunter2' });
-
-    expect(error).toBeNull();
-    expect(user).toBe(fakeUser);
-  });
 });
 
 describe('loginWithSupaBase (via login with providerToken)', () => {

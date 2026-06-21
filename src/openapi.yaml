@@ -39,12 +39,19 @@ components:
       properties:
         id:
           type: integer
-        title:
+        name:
           type: string
         description:
           type: string
         price:
           type: number
+        tags:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          format: date-time
         creatorId:
           type: integer
         createdAt:
@@ -62,10 +69,12 @@ components:
                 type: integer
               modelId:
                 type: integer
-              url:
+              route:
                 type: string
-              type:
+              extension:
                 type: string
+              size:
+                type: number
         creator:
           $ref: '#/components/schemas/User'
     CartItem:
@@ -139,6 +148,59 @@ components:
               updatedAt:
                 type: string
                 format: date-time
+    Request:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        content:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - rejected
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            image:
+              type: string
+              nullable: true
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        userId:
+          type: integer
+        modelId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            username:
+              type: string
+            image:
+              type: string
+              nullable: true
 
   responses:
     Unauthorized:
@@ -194,6 +256,271 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a new user (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                image:
+                  type: string
+                seller:
+                  type: boolean
+                role:
+                  type: string
+              required:
+                - username
+                - email
+                - password
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: Missing required fields or invalid image
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Email or username already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{username}:
+    get:
+      summary: Get user profile by username
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      stats:
+                        type: object
+                        properties:
+                          c_sales:
+                            type: integer
+                          c_purchases:
+                            type: integer
+                          reputation:
+                            type: number
+        '404':
+          description: User not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/{id}:
+    put:
+      summary: Update user profile (full update)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                image:
+                  type: string
+                seller:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: No valid fields to update or invalid image
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+        '409':
+          description: Email or username already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update user profile (partial update)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                image:
+                  type: string
+                seller:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      username:
+                        type: string
+                      image:
+                        type: string
+                        nullable: true
+                      seller:
+                        type: boolean
+                      role:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: No valid fields to update or invalid image
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: User not found
+        '409':
+          description: Email or username already in use
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: User successfully deleted.
+        '403':
+          description: Forbidden
+        '404':
+          description: User not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -326,6 +653,71 @@ paths:
                       $ref: '#/components/schemas/ModelTridi'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create a new 3D model
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                tags:
+                  type: array
+                  items:
+                    type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Model created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelTridi'
+        '400':
+          description: Name is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/created/{ownerId}:
+    get:
+      summary: Get models created by a specific user
+      parameters:
+        - in: path
+          name: ownerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of models by the creator
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModelTridi'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /models/{id}:
     get:
@@ -346,6 +738,137 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/ModelTridi'
+        '404':
+          description: Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    patch:
+      summary: Update a 3D model
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Model updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelTridi'
+        '400':
+          description: No valid fields to update or name cannot be empty
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Model not found
+        '422':
+          description: Price must be a non-negative number
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a 3D model
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Model successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: Model successfully deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/{id}/file:
+    put:
+      summary: Upload a file to a 3D model
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: filename
+          required: true
+          schema:
+            type: string
+          description: File name with extension (.glb or .gltf)
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          model/gltf-binary:
+            schema:
+              type: string
+              format: binary
+          model/gltf+json:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ModelTridi'
+        '400':
+          description: Format not supported, missing file, or file too large
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: Model not found
         '500':
@@ -501,6 +1024,37 @@ paths:
         '422':
           description: Unprocessable Entity
 
+  /cards/{id}:
+    delete:
+      summary: Delete a saved card
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Card deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Card not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /purchases:
     post:
       summary: Create a new purchase
@@ -555,6 +1109,73 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           description: Purchase not found
+    put:
+      summary: Update a purchase
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                total:
+                  type: number
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Purchase updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+        '400':
+          description: No valid fields to update
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+        '409':
+          description: Conflict (Invalid transition)
+        '422':
+          description: Total must be a non-negative number
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a purchase
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Purchase successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: Purchase successfully deleted.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Purchase not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /purchases/{id}/status:
     patch:
@@ -634,3 +1255,290 @@ paths:
           description: Purchase or Card not found
         '409':
           description: Conflict
+
+  /purchases/items/by/{buyerId}:
+    get:
+      summary: Get purchased models by buyer
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: buyerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of purchased models (completed purchases only)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelTridi'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /requests:
+    post:
+      summary: Create a request
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                content:
+                  type: string
+              required:
+                - type
+      responses:
+        '201':
+          description: Request created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Request'
+        '400':
+          description: Bad Request
+        '409':
+          description: You already have a pending request of this type
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      summary: Get all requests (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /requests/my:
+    get:
+      summary: Get current user's requests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /requests/pending:
+    get:
+      summary: Get pending requests (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pending requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Request'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /requests/{requestId}:
+    patch:
+      summary: Update request status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - pending
+                    - approved
+                    - rejected
+              required:
+                - status
+      responses:
+        '200':
+          description: Request updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Request'
+        '400':
+          description: Invalid status
+        '404':
+          description: Request not found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /comments:
+    post:
+      summary: Create a comment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                modelId:
+                  type: integer
+              required:
+                - content
+                - modelId
+      responses:
+        '201':
+          description: Comment created
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: 3D Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /models/{id}/comments:
+    get:
+      summary: Get comments for a 3D model
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        '404':
+          description: 3D Model not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /comments/{id}:
+    patch:
+      summary: Update a comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required:
+                - content
+      responses:
+        '200':
+          description: Comment updated
+        '400':
+          description: Content is required
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete a comment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'

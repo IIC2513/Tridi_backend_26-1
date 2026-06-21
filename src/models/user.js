@@ -17,6 +17,16 @@ module.exports = (sequelize, DataTypes) => {
         as: 'sessions'
       });
 
+      User.hasMany(models.Request, {
+        foreignKey: 'userId',
+        as: 'requests'
+      });
+
+      User.hasMany(models.Comment, {
+        foreignKey: 'userId',
+        as: 'comments'
+      });
+
       User.hasOne(models.Stats, {
         foreignKey: 'userId',
         as: 'stats'
@@ -87,7 +97,15 @@ module.exports = (sequelize, DataTypes) => {
                 transaction: options.transaction
             });
         }
-    }
+    },
+    defaultScope: {
+        attributes: { exclude: ['password'] },
+    },
+    scopes: {
+      withPassword: {
+        attributes: {},
+      },
+    },
   });
   return User;
 };
