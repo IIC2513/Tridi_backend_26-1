@@ -132,7 +132,7 @@ router.put('/:id', async (req, res) => {
             if (!canTransition(purchase.status, status)) {
                 return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${status}` });
             }
-            updates.status = status;
+            updates.status = status === 'paid' ? 'completed' : status;
         }
 
         if (Object.keys(updates).length === 0) {
@@ -191,7 +191,7 @@ router.patch('/:id/status', async (req, res) => {
         return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${target}` });
     }
 
-    if (target === 'paid' && purchase.status !== 'paid') {
+    if (target === 'completed' && purchase.status !== 'completed') {
 
         const stats = await Stats.findOne({
             where: { userId: req.user.id }
@@ -232,7 +232,8 @@ router.patch('/:id/status', async (req, res) => {
         }
     }
 
-    await purchase.update({ status: target });
+    const effectiveStatus = target === 'paid' ? 'completed' : target;
+    await purchase.update({ status: effectiveStatus });
     res.json(purchase);
 });
 

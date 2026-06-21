@@ -163,7 +163,7 @@ describe('POST /purchases/:id/pay', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.transactionId).toBe('tx_123');
-    expect(res.body.purchase.status).toBe('paid');
+    expect(res.body.purchase.status).toBe('completed');
     expect(mock.charge).toHaveBeenCalled();
   });
 
