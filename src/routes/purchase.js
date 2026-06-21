@@ -191,7 +191,9 @@ router.patch('/:id/status', async (req, res) => {
         return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${target}` });
     }
 
-    if (target === 'completed' && purchase.status !== 'completed') {
+    const effectiveStatus = target === 'paid' ? 'completed' : target;
+
+    if (effectiveStatus === 'completed' && purchase.status !== 'completed') {
 
         const stats = await Stats.findOne({
             where: { userId: req.user.id }
@@ -218,21 +220,20 @@ router.patch('/:id/status', async (req, res) => {
 
         for (const [creatorId, count] of Object.entries(salesPerCreator)) {
 
-            const stats = await Stats.findOne({
+            const creatorStats = await Stats.findOne({
                 where: {
                     userId: creatorId
                 }
             });
 
-            if (stats) {
-                await stats.update({
-                    c_sales: stats.c_sales + count
+            if (creatorStats) {
+                await creatorStats.update({
+                    c_sales: creatorStats.c_sales + count
                 });
             }
         }
     }
 
-    const effectiveStatus = target === 'paid' ? 'completed' : target;
     await purchase.update({ status: effectiveStatus });
     res.json(purchase);
 });
