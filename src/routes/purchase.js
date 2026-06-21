@@ -25,7 +25,11 @@ router.post('/', async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-    res.json(await Purchase.findAll({ where: { buyerId: req.user.id } }));
+    res.json(await Purchase.findAll({
+        where: { buyerId: req.user.id },
+        include: [{ model: PurchaseItem, include: [{ model: ModelTridi, attributes: ['id', 'name'] }] }],
+        order: [['createdAt', 'DESC']],
+    }));
 });
 
 router.get('/items/by/:buyerId', async (req, res) => {
@@ -68,7 +72,9 @@ router.get('/items/by/:buyerId', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-    const purchase = await Purchase.findByPk(req.params.id, { include: PurchaseItem });
+    const purchase = await Purchase.findByPk(req.params.id, {
+        include: [{ model: PurchaseItem, include: [{ model: ModelTridi, attributes: ['id', 'name'] }] }],
+    });
     if (!purchase) {
         return res.status(404).json({ error: 'Purchase not found' });
     }
