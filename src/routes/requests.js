@@ -74,7 +74,7 @@ router.get('/my', async (req, res) => {
     }
 });
 
-router.get('/', [, middlawareHandleAdmin], async (req, res) => {
+router.get('/', [middlawareHandleAdmin], async (req, res) => {
     try {
         const requests = await Request.findAll({
             attributes: ['id', 'type', 'content', 'status'],
