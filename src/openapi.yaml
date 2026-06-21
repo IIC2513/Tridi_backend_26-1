@@ -39,12 +39,19 @@ components:
       properties:
         id:
           type: integer
-        title:
+        name:
           type: string
         description:
           type: string
         price:
           type: number
+        tags:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          format: date-time
         creatorId:
           type: integer
         createdAt:
@@ -62,10 +69,12 @@ components:
                 type: integer
               modelId:
                 type: integer
-              url:
+              route:
                 type: string
-              type:
+              extension:
                 type: string
+              size:
+                type: number
         creator:
           $ref: '#/components/schemas/User'
     CartItem:
@@ -153,7 +162,7 @@ components:
           type: string
           enum:
             - pending
-            - approved
+            - accepted
             - rejected
         user:
           type: object
@@ -314,6 +323,8 @@ paths:
   /users/{username}:
     get:
       summary: Get user profile by username
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: username
@@ -1442,6 +1453,8 @@ paths:
           description: Invalid request
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: 3D Model not found
         '500':
