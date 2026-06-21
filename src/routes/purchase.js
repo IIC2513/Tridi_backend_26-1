@@ -28,6 +28,45 @@ router.get('/', async (req, res) => {
     res.json(await Purchase.findAll({ where: { buyerId: req.user.id } }));
 });
 
+router.get('/items/by/:buyerId', async (req, res) => {
+    if (Number(req.params.buyerId) !== req.user.id && req.user.role !== 'admin')
+        return res.status(403).json({error: "Forbidden"});
+
+    const purchased = await Purchase.findAll({
+        where: {
+            buyerId: Number(req.params.buyerId),
+            status: 'completed'
+        },
+        include: [
+            {
+                model: PurchaseItem,
+                include: [
+                    {
+                        model: ModelTridi,
+                        include: [
+                            {
+                                model: User,
+                                as: 'creator',
+                                attributes: ['username']
+                            },
+                            {
+                                model: File,
+                                as: 'files'
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    });
+
+    const extractedModels = purchased.flatMap(
+        purchase => purchase.PurchaseItems.map(item => item.ModelTridi)
+    );
+
+    return res.json(extractedModels);
+});
+
 router.get('/:id', async (req, res) => {
     const purchase = await Purchase.findByPk(req.params.id, { include: PurchaseItem });
     if (!purchase) {
@@ -67,45 +106,6 @@ router.post('/:id/pay', async (req, res) => {
         await purchase.update({ status: 'failed' });
     }
     res.status(402).json({ error: 'Payment failed', reason: result.reason, purchase });
-});
-
-router.get('/items/by/:buyerId', async (req, res) => {
-    if (Number(req.params.buyerId) !== req.user.id && req.user.role !== 'admin')
-        return res.status(403).json({error: "Forbidden"});
-
-    const purchased = await Purchase.findAll({
-        where: {
-            buyerId: Number(req.params.buyerId),
-            status: 'completed'
-        },
-        include: [
-            {
-                model: PurchaseItem,
-                include: [
-                    {
-                        model: ModelTridi,
-                        include: [
-                            {
-                                model: User,
-                                as: 'creator',
-                                attributes: ['username']
-                            },
-                            {
-                                model: File,
-                                as: 'files'
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    });
-
-    const extractedModels = purchased.flatMap(
-        purchase => purchase.PurchaseItems.map(item => item.ModelTridi)
-    );
-
-    return res.json(extractedModels);
 });
 
 router.put('/:id', async (req, res) => {
