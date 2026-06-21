@@ -4,6 +4,14 @@ const { Purchase, PurchaseItem, Cart, CartItem, ModelTridi, Card, File, User, St
 const { canTransition } = require('../services/purchaseStateMachine');
 const mock = require('../services/paymentMock');
 
+function calculateReputation(stats) {
+    const score = stats.c_purchases + (2 * stats.c_sales);
+
+    if (score >= 100) return 3;
+    if (score >= 30) return 2;
+    if (score >= 10) return 1;
+    return 0;
+}
 
 router.post('/', async (req, res) => {
     const buyerId = req.user.id;
@@ -197,9 +205,7 @@ router.patch('/:id/status', async (req, res) => {
         return res.status(409).json({ error: `Invalid transition: ${purchase.status} → ${target}` });
     }
 
-    const effectiveStatus = target === 'paid' ? 'completed' : target;
-
-    if (effectiveStatus === 'completed' && purchase.status !== 'completed') {
+    if (target === 'paid' && purchase.status !== 'paid') {
 
         const stats = await Stats.findOne({
             where: { userId: req.user.id }
@@ -211,8 +217,14 @@ router.patch('/:id/status', async (req, res) => {
 
         const itemsCount = purchase.PurchaseItems.length;
 
+        const newPurchases = stats.c_purchases + itemsCount;
+
         await stats.update({
-            c_purchases: stats.c_purchases + itemsCount
+            c_purchases: newPurchases,
+            reputation: calculateReputation({
+                c_purchases: newPurchases,
+                c_sales: stats.c_sales
+            })
         });
 
         const salesPerCreator = {};
@@ -226,20 +238,27 @@ router.patch('/:id/status', async (req, res) => {
 
         for (const [creatorId, count] of Object.entries(salesPerCreator)) {
 
-            const creatorStats = await Stats.findOne({
+            const stats = await Stats.findOne({
                 where: {
                     userId: creatorId
                 }
             });
 
-            if (creatorStats) {
-                await creatorStats.update({
-                    c_sales: creatorStats.c_sales + count
+            if (stats) {
+                const newSales = stats.c_sales + count;
+
+                await stats.update({
+                    c_sales: newSales,
+                    reputation: calculateReputation({
+                        c_purchases: stats.c_purchases,
+                        c_sales: newSales
+                    })
                 });
             }
         }
     }
 
+    const effectiveStatus = target === 'paid' ? 'completed' : target;
     await purchase.update({ status: effectiveStatus });
     res.json(purchase);
 });
